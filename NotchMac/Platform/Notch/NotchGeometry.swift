@@ -4,63 +4,72 @@
 //
 
 import AppKit
-import CoreGraphics
 
-/// Pixel-perfect calculation of the physical hardware notch and panel frames using NSScreen auxiliary areas.
-struct NotchGeometry: Sendable, Equatable {
+/// Computes and stores the exact screen coordinates for the collapsed hardware notch and expanded NotchMac overlay.
+nonisolated struct NotchGeometry: Equatable, Sendable {
     let notchWidth: CGFloat
     let notchHeight: CGFloat
     let screenFrame: CGRect
-    let hasPhysicalNotch: Bool
 
-    /// Expanded dimensions when user hovers over the notch
-    static let expandedWidth: CGFloat = 500
-    static let expandedHeight: CGFloat = 210
+    /// Top concave ear radius in collapsed state
+    static let collapsedTopEarRadius: CGFloat = 6
+    /// Top concave ear radius in expanded state
+    static let expandedTopEarRadius: CGFloat = 13
 
-    /// Extra padding around the panel canvas to accommodate spring overshoot and shadow/glow
-    static let canvasHorizontalPadding: CGFloat = 40
-    static let canvasVerticalPadding: CGFloat = 30
+    /// Clean, sleek proportions with enough room so nothing clips
+    static let expandedWidth: CGFloat = 456
+    static let expandedHeight: CGFloat = 136
 
-    /// Fallback dimensions for external monitors or Macs without a physical camera housing
-    private static let fallbackNotchWidth: CGFloat = 184
-    private static let fallbackNotchHeight: CGFloat = 32
+    /// Extra margin around the expanded notch to accommodate top concave ears and drop shadow
+    private static let shadowMarginX: CGFloat = 28
+    private static let shadowMarginBottom: CGFloat = 24
 
-    /// Dynamically computes the notch geometry for a given screen (defaults to the main/built-in screen).
-    static func current(for screen: NSScreen? = NSScreen.notchScreen) -> NotchGeometry {
-        guard let screen else {
-            return NotchGeometry(
-                notchWidth: fallbackNotchWidth,
-                notchHeight: fallbackNotchHeight,
-                screenFrame: .zero,
-                hasPhysicalNotch: false
-            )
-        }
+    /// Static bounding frame for the floating NSPanel so we never animate NSWindow.setFrame on every tick.
+    var panelFrame: CGRect {
+        let totalWidth = Self.expandedWidth + (Self.expandedTopEarRadius * 2) + (Self.shadowMarginX * 2)
+        let totalHeight = Self.expandedHeight + Self.shadowMarginBottom
+        let originX = screenFrame.origin.x + ((screenFrame.width - totalWidth) / 2.0)
+        let originY = screenFrame.maxY - totalHeight
 
-        let leftAreaWidth = screen.auxiliaryTopLeftArea?.width ?? 0
-        let rightAreaWidth = screen.auxiliaryTopRightArea?.width ?? 0
-        let dynamicNotchWidth = screen.frame.width - leftAreaWidth - rightAreaWidth
-        let dynamicNotchHeight = screen.safeAreaInsets.top
-
-        let hasNotch = dynamicNotchHeight > 0 && leftAreaWidth > 0 && rightAreaWidth > 0
-
-        let resolvedWidth = hasNotch ? max(dynamicNotchWidth, 160) : fallbackNotchWidth
-        let resolvedHeight = hasNotch ? dynamicNotchHeight : max(NSStatusBar.system.thickness, fallbackNotchHeight)
-
-        return NotchGeometry(
-            notchWidth: resolvedWidth,
-            notchHeight: resolvedHeight,
-            screenFrame: screen.frame,
-            hasPhysicalNotch: hasNotch
+        return CGRect(
+            x: originX.rounded(),
+            y: originY.rounded(),
+            width: totalWidth.rounded(),
+            height: totalHeight.rounded()
         )
     }
 
-    /// Static bounding box frame for the NSPanel anchored to the top-center of the screen.
-    /// Keeping a static panel bounding box avoids resizing NSWindow every animation frame.
-    var panelFrame: CGRect {
-        let width = Self.expandedWidth + Self.canvasHorizontalPadding
-        let height = Self.expandedHeight + Self.canvasVerticalPadding
-        let originX = screenFrame.midX - (width / 2)
-        let originY = screenFrame.maxY - height
-        return CGRect(x: originX.rounded(), y: originY.rounded(), width: width, height: height)
+    /// Calculates the current geometry from the target screen using auxiliaryTopLeftArea and auxiliaryTopRightArea.
+    @MainActor
+    static func current(for screen: NSScreen? = nil) -> NotchGeometry {
+        guard let targetScreen = screen ?? NSScreen.notchScreen else {
+            return NotchGeometry(
+                notchWidth: 184,
+                notchHeight: 32,
+                screenFrame: CGRect(x: 0, y: 0, width: 1440, height: 900)
+            )
+        }
+
+        let frame = targetScreen.frame
+        let safeTop = targetScreen.safeAreaInsets.top
+
+        if safeTop > 0,
+           let leftArea = targetScreen.auxiliaryTopLeftArea,
+           let rightArea = targetScreen.auxiliaryTopRightArea {
+            let cutWidth = max(160, rightArea.minX - leftArea.maxX)
+            let cutHeight = max(28, safeTop)
+            return NotchGeometry(
+                notchWidth: cutWidth,
+                notchHeight: cutHeight,
+                screenFrame: frame
+            )
+        }
+
+        let menuBarHeight = max(28, frame.maxY - targetScreen.visibleFrame.maxY)
+        return NotchGeometry(
+            notchWidth: 184,
+            notchHeight: menuBarHeight,
+            screenFrame: frame
+        )
     }
 }

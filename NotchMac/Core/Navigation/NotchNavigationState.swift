@@ -4,40 +4,40 @@
 //
 
 import Combine
-import SwiftUI
+import Foundation
 
-/// Represents the active tab inside the expanded notch.
+/// Represents the active workspace mode inside the expanded NotchMac interface.
 enum NotchTab: String, CaseIterable, Identifiable, Sendable {
-    case nook = "Nook"
-    case tray = "Tray"
+    case nook = "Live"
+    case tray = "Stash"
 
     var id: String { rawValue }
-
-    var systemImage: String {
-        switch self {
-        case .nook:
-            return "sparkles.rectangle.stack.fill"
-        case .tray:
-            return "tray.and.arrow.down.fill"
-        }
-    }
 }
 
-/// Manages the expanded/collapsed state and active tab of the notch companion.
+/// Centralized navigation and expansion state for the Notch container.
 @MainActor
 final class NotchNavigationState: ObservableObject {
     @Published var isExpanded: Bool = false
+    @Published var isPinned: Bool = false
     @Published var activeTab: NotchTab = .nook
-    @Published var geometry: NotchGeometry = .current()
+    @Published var geometry: NotchGeometry
 
-    func setExpanded(_ expanded: Bool) {
-        guard isExpanded != expanded else { return }
-        withAnimation(NotchTheme.springAnimation) {
-            isExpanded = expanded
-        }
+    init(geometry: NotchGeometry? = nil) {
+        self.geometry = geometry ?? NotchGeometry.current()
     }
 
-    func refreshGeometry(for screen: NSScreen? = NSScreen.notchScreen) {
-        geometry = .current(for: screen)
+    func setExpanded(_ expanded: Bool) {
+        if !expanded && isPinned {
+            return
+        }
+        guard isExpanded != expanded else { return }
+        isExpanded = expanded
+    }
+
+    func togglePin() {
+        isPinned.toggle()
+        if isPinned {
+            isExpanded = true
+        }
     }
 }

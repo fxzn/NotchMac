@@ -5,38 +5,40 @@
 
 import SwiftUI
 
-/// Centralized design tokens, colors, corner radii, and Apple spring physics constants.
+/// Centralized design tokens for NotchMac's clean, pure-black native macOS aesthetic.
 enum NotchTheme {
-    // MARK: - Animations
-
-    /// Standard Apple Spring Physics animation required for all notch state transitions (120fps ProMotion fluid feel).
-    static let springAnimation: Animation = .spring(
+    // MARK: - Animation Physics
+    /// Strictly mandated Apple Spring Physics (response: 0.35, dampingFraction: 0.75, blendDuration: 0)
+    static let springAnimation = Animation.spring(
         response: 0.35,
         dampingFraction: 0.75,
         blendDuration: 0
     )
 
-    // MARK: - Colors
+    // MARK: - Corner Radii
+    static let collapsedCornerRadius: CGFloat = 10
+    static let expandedCornerRadius: CGFloat = 20
+    static let cardCornerRadius: CGFloat = 12
 
-    /// Pure OLED black matching the physical MacBook notch housing.
+    // MARK: - Dimensions & Spacing
+    static let contentPadding: CGFloat = 14
+    static let cardSpacing: CGFloat = 14
+    static let borderWidth: CGFloat = 0.5
+
+    // MARK: - Colors
     static let notchBackground = Color.black
 
-    /// Subtle dark elevated surface for inner widget cards.
-    static let cardBackground = Color.white.opacity(0.07)
+    static let cardFill = Color.white.opacity(0.05)
+    static let cardBorder = Color.white.opacity(0.08)
 
-    /// Hairline border stroke for the expanded notch and inner glass cards.
-    static let hairlineBorder = Color.white.opacity(0.12)
+    // MARK: - Subtle Native Accents
+    static let spotifyAccent = Color(red: 0.12, green: 0.84, blue: 0.38)
+    static let appleMusicAccent = Color(red: 0.98, green: 0.22, blue: 0.34)
+    static let youtubeAccent = Color(red: 1.00, green: 0.00, blue: 0.20)
+    static let netflixAccent = Color(red: 0.90, green: 0.04, blue: 0.08)
+    static let browserAccent = Color(red: 0.22, green: 0.58, blue: 1.00)
 
-    /// Primary accent color for active indicators (Spotify green).
-    static let spotifyAccent = Color(red: 0.11, green: 0.73, blue: 0.33)
-
-    /// Warm accent color for Quick Notes.
-    static let notesAccent = Color(red: 1.0, green: 0.80, blue: 0.28)
-
-    // MARK: - Dimensions & Corner Radii
-
-    static let collapsedCornerRadius: CGFloat = 14
-    static let expandedCornerRadius: CGFloat = 24
-    static let cardCornerRadius: CGFloat = 14
-    static let borderWidth: CGFloat = 0.8
+    /// Clean macOS system blue for active calendar date
+    static let calendarAccent = Color(red: 0.24, green: 0.56, blue: 1.00)
+    static let notesAccent = Color.white.opacity(0.75)
 }
